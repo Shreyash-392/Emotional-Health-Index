@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- UPDATED: Title Change -->
+    <title>Emotional Health Index — Mental Resilience Hub</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Inter (default) and Lexend (dyslexia-friendly) fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- NEW: Load jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- NEW: Load Chart.js for Mood Graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #ffffff;
+            /* UPDATED: Default 'neutral' gradient */
+            background: linear-gradient(270deg, #380036, #0cbaba, #2c3e50, #3498db);
+            background-size: 400% 400%;
+            /* UPDATED: Default 'neutral' animation */
+            animation: gradient-neutral 25s ease infinite;
+            margin: 0;
+            padding: 0;
+            /* This is crucial to contain the bubbles */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* REMOVED: Old @keyframes gradient-bg */
+
+        /* FIX: Modified keyframes for smooth 'alternate' animation */
+        @keyframes float-orb {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                transform: translate(20vw, -30vh) scale(1.2);
+            }
+        }
+
+        /* --- Glassmorphism UI Components --- */
+        .glass-card, .glass-modal, .glass-nav {
+            /* Base glass style */
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px; /* Softer, more rounded edges */
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            /* UPDATED: Faster, cleaner transition for all properties */
+            transition: all 0.25s ease-out;
+        }
+        
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            /* UPDATED: Stronger shadow and "higher" transform */
+            box-shadow: 0 16px 45px 0 rgba(31, 38, 135, 0.2);
+            transform: translateY(-12px) scale(1.02);
+        }
+
+        /* --- Adaptive UI Themes --- */
+        /* We change the --color-accent and the --glass-tint (an RGBA value) */
+        :root {
+            /* Default: Neutral */
+            --color-accent: 255, 255, 255; /* white */
+            --glass-tint: 255, 255, 255;   /* white tint */
+            --text-primary: 255, 255, 255;
+            --text-secondary: 229, 231, 235; /* gray-200 */
+        }
+
+        /* NEW: Theme-specific background animations */
+        /* These classes are added to the <body> tag by the updateUI() function */
+        body.theme-calm {
+            background: linear-gradient(135deg, #2c3e50, #d7d2cc, #2c5364, #203a43, #0f2027);
+            background-size: 400% 400%;
+            animation: gradient-calm 30s ease infinite;
+        }
+        body.theme-anxious {
+            background: linear-gradient(135deg, #f7b733, #f53803, #e1eec3, #f05053);
+            background-size: 400% 400%;
+            animation: gradient-anxious 20s ease infinite;
+        }
+        body.theme-sad {
+            background: linear-gradient(135deg, #09203f, #3a6073, #16222a, #537895);
+            background-size: 400% 400%;
+            animation: gradient-sad 35s ease infinite;
+        }
+        body.theme-angry {
+            background: linear-gradient(135deg, #cb2d3e, #642b73, #3a1c71, #d76d77, #ffaf7b);
+            background-size: 400% 400%;
+            animation: gradient-angry 20s ease infinite;
+        }
+
+
+        .theme-calm {
+            /* Soft Blues */
+            --color-accent: 96, 165, 250;     /* blue-400 */
+            --glass-tint: 96, 165, 250;
+        }
+
+        .theme-anxious {
+            /* Warm Neutrals (Stress) */
+            --color-accent: 245, 158, 11;     /* amber-500 */
+            --glass-tint: 245, 158, 11;
+        }
+
+        .theme-sad {
+            /* Dark, Comforting (Low Mood) */
+            --color-accent: 139, 92, 246;     /* violet-500 */
+            --glass-tint: 139, 92, 246;
+        }
+        
+        .theme-angry {
+            /* Warm, deep red */
+            --color-accent: 220, 38, 38;      /* red-600 */
+            --glass-tint: 220, 38, 38;
+        }
+
+        /* Apply the theme variables */
+        .text-accent { color: rgb(var(--color-accent)); }
+        .bg-accent { background-color: rgb(var(--color-accent)); }
+        .hover\:bg-accent-hover:hover { background-color: rgb(var(--color-accent) / 0.8); }
+        .border-accent { border-color: rgb(var(--color-accent)); }
+        .ring-accent { --tw-ring-color: rgb(var(--color-accent)); }
+        
+        .text-primary { color: rgb(var(--text-primary)); }
+        .text-secondary { color: rgb(var(--text-secondary)); }
+
+        .glass-card, .glass-modal, .glass-nav {
+            background: rgba(var(--glass-tint), 0.1);
+            border-color: rgba(var(--glass-tint), 0.2);
+        }
+
+        /* --- Breathing Animation --- */
+        @keyframes pulse-breath {
+            0% { transform: scale(0.8); opacity: 0.7; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.7; }
+        }
+        .breath-circle {
+            animation: pulse-breath 8s ease-in-out infinite;
+        }
+        
+        /* FIX: Replaced old pulse-text with two new keyframes for correct alternating text */
+        @keyframes pulse-text-inhale {
+            0% { opacity: 1; }
+            49.99% { opacity: 1; } /* Stay visible for the first half */
+            50% { opacity: 0; }   /* Disappear for the second half */
+            100% { opacity: 0; }
+        }
+        @keyframes pulse-text-exhale {
+            0% { opacity: 0; }     /* Stay hidden for the first half */
+            50% { opacity: 1; }     /* Appear for the second half */
+            99.99% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+
+        /* --- Modal styles --- */
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        .modal-content {
+            /* UPDATED: Bouncy "spring" transition for modal pop-in */
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* NEW: Auth Modal Styles */
+        .auth-error {
+            color: #fca5a5; /* red-300 */
+            background: rgba(239, 68, 68, 0.1); /* red-500 / 10% */
+            border: 1px solid rgba(239, 68, 68, 0.2); /* red-500 / 20% */
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        /* --- Accessibility --- */
+        .dyslexia-font {
+            font-family: 'Lexend', sans-serif;
+        }
+        .high-contrast {
+            background: #000000;
+            color: #ffffff;
+        }
+        .high-contrast .glass-card, .high-contrast .glass-modal, .high-contrast .glass-nav {
+            background: #000000;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border: 2px solid #ffffff;
+        }
+        .high-contrast .text-secondary {
+            color: #dddddd;
+        }
+
+        /* FIX: Added rule to make chat bubble text visible in high-contrast mode */
+        .high-contrast .text-gray-800 {
+            color: #ffffff;
+        }
+        
+        /* FIX: Added rule for chat input placeholder in high-contrast mode */
+        .high-contrast input::placeholder {
+            color: #bbbbbb;
+        }
+
+
+        /* --- NEW: Floating Orbs --- */
+        #animation-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: -1; /* Behind all content */
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgb(var(--color-accent) / 0.3); /* Use theme color */
+            filter: blur(60px); /* Very soft */
+            opacity: 0.8;
+            will-change: transform; /* Performance hint */
+        }
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            top: 10vh;
+            left: 10vw;
+            animation: float-orb 35s infinite alternate ease-in-out;
+        }
+        .orb-2 {
+            width: 450px;
+            height: 450px;
+            top: 60vh;
+            left: 70vw;
+            animation: float-orb 45s infinite alternate ease-in-out;
+            animation-delay: -10s;
+        }
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            top: 40vh;
+            left: 40vw;
+            animation: float-orb 40s infinite alternate ease-in-out;
+            animation-delay: -5s;
+        }
+
+        /* --- NEW: Added Animation/Transition Rules --- */
+        
+        /* For nav links */
+        nav a {
+            transition: transform 0.2s ease-out;
+            display: inline-block; /* Required for transform */
+        }
+        nav a:hover {
+            transform: scale(1.1);
+        }
+        /* NEW: Nav buttons */
+        .nav-button {
+            font-medium text-primary hover:text-accent transition-colors;
+        }
+        .nav-button-cta {
+             bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-full transition-colors;
+        }
+
+
+        /* For main buttons */
+        .btn-hover-effect {
+            /* Add transitions for transform and shadow, preserving Tailwind's color transition */
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s ease-out;
+        }
+        .btn-hover-effect:hover {
+            transform: scale(1.03);
+            /* Adds a "glow" effect using the current theme's accent color */
+            box-shadow: 0 4px 20px rgba(var(--color-accent), 0.3);
+        }
+
+        /* NEW: Specific hover for the resources card */
+        .hover\:shadow-blue-glow:hover {
+            box-shadow: 0 10px 30px rgba(96, 165, 250, 0.3); /* blue-400 glow */
+        }
+
+        /* NEW: Glows for new resource cards */
+        .hover\:shadow-yellow-glow:hover {
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3); /* amber-500 glow */
+        }
+        .hover\:shadow-violet-glow:hover {
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); /* violet-500 glow */
+        }
+
+        /* NEW: Keyframes for each mood's background gradient */
+        @keyframes gradient-neutral {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
+        @keyframes gradient-calm {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
+        @keyframes gradient-anxious {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
+        @keyframes gradient-sad {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
+        @keyframes gradient-angry {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
+
+    </style>
+</head>
+
+<body id="app-body">
+
+    <!-- NEW: Animation Wrapper -->
+    <div id="animation-wrapper">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- Header / Navigation -->
+    <header class="glass-nav sticky top-4 z-40 mx-4 md:mx-8">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- UPDATED: Name Change -->
+            <div class="text-2xl font-bold text-accent">
+                Emotional Health Index
+            </div>
+            <!-- UPDATED: Added Home, Login, Sign Up -->
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="font-medium text-primary hover:text-accent transition-colors">Home</a>
+                <a href="#dashboard-section" class="font-medium text-primary hover:text-accent transition-colors">Dashboard</a>
+                <a href="#modules-section" class="font-medium text-primary hover:text-accent transition-colors">Modules</a>
+                
+                <!-- NEW: Added Check-In Button for Desktop -->
+                <button id="checkin-button-desktop" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-5 rounded-full transition-colors btn-hover-effect">
+                    Quick Check-In
+                </button>
+                
+                <a href="#" id="login-nav-button" onclick="openAuthModal('login-modal')" class="font-medium text-primary hover:text-accent transition-colors cursor-pointer">Login</a>
+                <a href="#" id="signup-nav-button" onclick="openAuthModal('signup-modal')" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-full transition-colors cursor-pointer">Sign Up</a>
+                <button id="logout-button" class="hidden bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-full transition-colors">Logout</button>
+            </div>
+            <!-- UPDATED: This button is now just for mobile -->
+            <button id="checkin-button-mobile" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-5 rounded-full transition-colors btn-hover-effect md:hidden">
+                Check-In
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 md:px-8 py-8">
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="mb-12">
+            <!-- UPDATED: Welcome Text -->
+            <h1 class="text-4xl font-bold text-primary mb-4">Welcome to the Emotional Health Index</h1>
+            <p class="text-lg text-secondary mb-8">A space to check-in with yourself and build resilience.</p>
+            
+            <!-- RE-ADDED: Download Report Button -->
+            <div class="mb-8">
+                <button id="download-pdf-button" class="bg-accent/80 hover:bg-accent/100 text-white font-medium py-3 px-6 rounded-full transition-colors btn-hover-effect">
+                    Download PDF Summary
+                </button>
+            </div>
+            
+            <!-- UPDATED: Replaced Resources Card with 2-Column Card Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                
+                <!-- Card 1: Consult -->
+                <!-- UPDATED: This card now also links to the Tele MANAS website per user request -->
+                <div class="glass-card p-6 bg-yellow-400/10 border-yellow-400/30 text-center transition-all duration-300 hover:shadow-yellow-glow">
+                    <!-- Icon 1: UPDATED to User/Consult icon -->
+                    <svg class="w-16 h-16 mx-auto mb-4 text-yellow-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A1.5 1.5 0 0118 21.75H6.75a1.5 1.5 0 01-1.249-1.632z" />
+                    </svg>
+
+                    <h3 class="text-2xl font-bold text-primary mb-2">Consult a Professional</h3>
+                    <!-- UPDATED: Text changed -->
+                    <p class="text-secondary mb-4">Visit the Tele MANAS website to consult with a professional.</p>
+                    <!-- UPDATED: Link and text changed -->
+                    <a href="https://telemanas.mohfw.gov.in/" target="_blank" rel="noopener noreferrer" class="inline-block bg-yellow-400/80 hover:bg-yellow-400/100 text-white font-medium py-3 px-6 rounded-full transition-colors btn-hover-effect">
+                        VISIT WEBSITE
+                    </a>
+                    <!-- UPDATED: Removed phone numbers -->
+                    <p class="text-primary mt-3 font-semibold">&nbsp;</p> <!-- To keep card height consistent -->
+                </div>
+
+                <!-- Card 2: Chat / Visit Website -->
+                <div class="glass-card p-6 bg-violet-400/10 border-violet-400/30 text-center transition-all duration-300 hover:shadow-violet-glow">
+                    <!-- Icon 2: Chat -->
+                    <svg class="w-16 h-16 mx-auto mb-4 text-violet-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-3.86 8.25-8.625 8.25a8.62 8.62 0 01-4.41-1.181l-5.061.674a.75.75 0 01-.82-1.043l1.263-5.424A8.62 8.62 0 013 12c0-4.556 3.86-8.25 8.625-8.25S21 7.444 21 12z" />
+                    </svg>
+                    <h3 class="text-2xl font-bold text-primary mb-2">Connect Instantly</h3>
+                    <p class="text-secondary mb-4">Visit the official Tele MANAS website to connect with their chat service.</p>
+                    <a href="https://telemanas.mohfw.gov.in/" target="_blank" rel="noopener noreferrer" class="inline-block bg-violet-400/80 hover:bg-violet-400/100 text-white font-medium py-3 px-6 rounded-full transition-colors btn-hover-effect">
+                        VISIT WEBSITE
+                    </a>
+                    <p class="text-primary mt-3 font-semibold">&nbsp;</p> <!-- To keep card height consistent -->
+                </div>
+
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Mood Dashboard -->
+                <div class="glass-card p-6 lg:col-span-2">
+                    <h3 class="text-2xl font-bold text-primary mb-4">Mood Dashboard</h3>
+                    <!-- UPDATED: Added wrapper and emoji span -->
+                    <div class="mb-4 flex items-center">
+                        <span class="text-secondary mr-2">Current Mood:</span>
+                        <span id="current-mood-display" class="font-bold text-accent capitalize text-lg">Neutral</span>
+                        <!-- UPDATED: Emoji larger -->
+                        <span id="current-mood-emoji" class="text-5xl ml-2 transition-all duration-300 ease-out transform">😐</span>
+                    </div>
+                    
+                    <!-- Mood Trend Graph (Simulated) -->
+                    <div>
+                        <h4 class="text-lg font-semibold text-primary mb-3">Your 7-Day Trend</h4>
+                        <!-- UPDATED: Replaced static divs with a canvas for Chart.js -->
+                        <div class="h-40 bg-white/5 rounded-lg p-4 relative">
+                            <canvas id="moodChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gamification / Streaks (UPDATED WITH IDs) -->
+                <div class="glass-card p-6">
+                    <h3 class="text-2xl font-bold text-primary mb-4">Your Progress</h3>
+                    <div class="space-y-4">
+                        <!-- Daily Check-in -->
+                        <div class="bg-white/10 p-4 rounded-lg flex items-center justify-between">
+                            <div>
+                                <p class="text-lg font-semibold text-primary">Daily Check-in</p>
+                                <p id="checkin-streak-display" class="text-secondary text-sm">Loading streak...</p>
+                            </div>
+                            <span id="checkin-streak-emoji" class="text-3xl opacity-0 transition-opacity">🔥</span>
+                        </div>
+                        <!-- Mindfulness Streak -->
+                        <div class="bg-white/10 p-4 rounded-lg flex items-center justify-between">
+                            <div>
+                                <p class="text-lg font-semibold text-primary">Mindfulness</p>
+                                <p id="mindfulness-sessions-display" class="text-secondary text-sm">Loading sessions...</p>
+                            </div>
+                            <span id="mindfulness-emoji" class="text-3xl opacity-0 transition-opacity">🧘</span>
+                        </div>
+                        <!-- NEW: Modules Completed -->
+                        <div class="bg-white/10 p-4 rounded-lg flex items-center justify-between">
+                            <div>
+                                <p class="text-lg font-semibold text-primary">Modules Completed</p>
+                                <p id="modules-completed-display" class="text-secondary text-sm">Loading...</p>
+                            </div>
+                            <span id="modules-completed-emoji" class="text-3xl opacity-0 transition-opacity">🎓</span>
+                        </div>
+                        <!-- Badges -->
+                        <div>
+                            <h4 class="text-lg font-semibold text-primary mb-2">Badges</h4>
+                            <div id="badges-display" class="flex space-x-3">
+                                <span class="text-gray-400 text-sm">No badges yet.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mindfulness Modules Section -->
+        <section id="modules-section" class="mb-12">
+            <h2 class="text-3xl font-bold text-primary mb-6">Mindfulness Modules</h2>
+            <div id="recommended-modules-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Modules will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- REMOVED: Support Circles Section -->
+        
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-12 py-8 text-center text-gray-200">
+        <div class="container mx-auto px-4 lg:px-8">
+            <!-- Accessibility Toggles -->
+            <div class="glass-card max-w-md mx-auto p-4 mb-6">
+                <h4 class="font-semibold text-primary mb-3">Accessibility</h4>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="toggleHighContrast()" class="bg-white/10 text-primary py-2 px-4 rounded-full text-sm">Toggle High Contrast</button>
+                    <button onclick="toggleDyslexiaFont()" class="bg-white/10 text-primary py-2 px-4 rounded-full text-sm">Toggle Dyslexia Font</button>
+                </div>
+            </div>
+            
+            <!-- UPDATED: Name Change -->
+            <p class="font-bold text-accent text-lg mb-2">Emotional Health Index</p>
+            <p class="mb-4 text-sm max-w-lg mx-auto">
+                This tool is an AI-powered concept for mental well-being and is not a replacement for professional medical advice, diagnosis, or treatment.
+            </p>
+            <div class="flex justify-center space-x-6 text-sm">
+                <a href="#" class="hover:text-accent transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-accent transition-colors">Terms of Service</a>
+            </div>
+            
+            <!-- NEW: Design By -->
+            <p class="text-sm text-gray-400 mt-6">
+                Designed By - The Syntax Squad
+            </p>
+        </div>
+    </footer>
+
+    <!-- --- Modals --- -->
+
+    <!-- 1. Emotion Check-In Modal (NOW A QUIZ) -->
+    <div id="checkin-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 opacity-0 invisible" onclick="closeModal('checkin-modal')">
+        <!-- UPDATED: Added overflow-y-auto and max-h for the result screen -->
+        <div class="modal-content glass-modal w-full max-w-lg p-6 transform scale-95 overflow-y-auto max-h-[90vh]" onclick="event.stopPropagation()">
+            
+            <!-- Quiz Step 1: Welcome -->
+            <div id="quiz-step-1" class="quiz-step">
+                <h3 class="text-2xl font-bold text-primary mb-4">Quick Check-In</h3>
+                <p class="text-secondary mb-6">Let's find out how you're feeling with a few quick questions. Your answers are private.</p>
+                <!-- UPDATED: Added btn-hover-effect class -->
+                <button class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-2 btn-hover-effect" onclick="showQuizStep(2)">
+                    Start Quiz
+                </button>
+                <button class="w-full bg-white/10 hover:bg-white/20 text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-3" onclick="closeModal('checkin-modal')">
+                    Cancel
+                </button>
+            </div>
+            
+            <!-- NEW: Quiz Step 2: Profession -->
+            <div id="quiz-step-2" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 1/10</h3>
+                <p class="text-secondary text-lg mb-6">Which best describes you?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('profession', 'Student', 3)">
+                        Student
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('profession', 'Tech Professional', 3)">
+                        Tech Professional
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('profession', 'Healthcare Worker', 3)">
+                        Healthcare Worker
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('profession', 'Artist / Creative', 3)">
+                        Artist / Creative
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('profession', 'Other', 3)">
+                        Other
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(1)">
+                    Back
+                </button>
+            </div>
+
+            <!-- NEW: Quiz Step 3: Dynamic Profession Question -->
+            <div id="quiz-step-3" class="quiz-step hidden">
+                <h3 id="quiz-step-3-title" class="text-xl font-bold text-primary mb-4">Question 2/10</h3>
+                <p id="quiz-step-3-subtitle" class="text-secondary text-lg mb-6">What's the main pressure point right now?</p>
+                <div id="quiz-step-3-answers" class="space-y-3">
+                    <!-- Dynamic buttons will be injected here by setupDynamicQuestions() -->
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(2)">
+                    Back
+                </button>
+            </div>
+
+            <!-- NEW: Quiz Step 4: Personal Life -->
+            <div id="quiz-step-4" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 3/10</h3>
+                <p class="text-secondary text-lg mb-6">What about your personal life is most on your mind?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_pers', 'Relationships (Friends/Partner)', 5)">
+                        Relationships (Friends/Partner)
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_pers', 'Family', 5)">
+                        Family
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_pers', 'Health / Self-Care', 5)">
+                        Health / Self-Care
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_pers', 'Nothing specific, just a general feeling', 5)">
+                        Nothing specific, just a general feeling
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(3)">
+                    Back
+                </button>
+            </div>
+
+            <!-- NEW: Quiz Step 5: Social Connection -->
+            <div id="quiz-step-5" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 4/10</h3>
+                <p class="text-secondary text-lg mb-6">How connected have you felt to others lately?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_social', 'Very connected', 6)">
+                        Very connected
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_social', 'Somewhat connected', 6)">
+                        Somewhat connected
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_social', 'A little isolated', 6)">
+                        A little isolated
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_social', 'Very isolated', 6)">
+                        Very isolated
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(4)">
+                    Back
+                </button>
+            </div>
+
+            <!-- UPDATED: Quiz Step 6: Gender (was Step 5) -->
+            <!-- REPLACED with Sleep Quality -->
+            <div id="quiz-step-6" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 5/10</h3>
+                <p class="text-secondary text-lg mb-6">How has your sleep quality been recently?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_sleep', 'Sleeping well, feeling rested', 7)">
+                        Sleeping well, feeling rested
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_sleep', 'Sleeping, but still tired', 7)">
+                        Sleeping, but still tired
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_sleep', 'Trouble falling/staying asleep', 7)">
+                        Trouble falling/staying asleep
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_sleep', 'Sleeping far more than usual', 7)">
+                        Sleeping far more than usual
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(5)">
+                    Back
+                </button>
+            </div>
+            
+            <!-- UPDATED: Quiz Step 7: Energy Level (was Step 6) -->
+            <!-- REPLACED with Cognitive State -->
+            <div id="quiz-step-7" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 6/10</h3>
+                <p class="text-secondary text-lg mb-6">Which best describes your mind right now?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_cognitive', 'Calm and clear', 8)">
+                        Calm and clear
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_cognitive', 'Mind is racing or busy', 8)">
+                        Mind is racing or busy
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_cognitive', 'Stuck on negative thoughts', 8)">
+                        Stuck on negative thoughts
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_cognitive', 'Foggy and slow', 8)">
+                        Foggy and slow
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(6)">
+                    Back
+                </button>
+            </div>
+            
+            <!-- UPDATED: Quiz Step 8: Core Feeling (was Step 7) -->
+            <!-- REPLACED with Self-Perception -->
+            <div id="quiz-step-8" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 7/10</h3>
+                <p class="text-secondary text-lg mb-6">How have you been feeling *about yourself* lately?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_self', 'I feel positive about myself', 9)">
+                        I feel positive about myself
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_self', 'I feel neutral', 9)">
+                        I feel neutral
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_self', 'I am feeling critical or down on myself', 9)">
+                        I'm feeling critical or down on myself
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q_self', 'I feel guilty or worthless', 9)">
+                        I feel guilty or worthless
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(7)">
+                    Back
+                </button>
+            </div>
+            
+            <!-- UPDATED: Quiz Step 9: Physical Sensation (was Step 8) -->
+            <!-- NOW Core Feeling -->
+            <div id="quiz-step-9" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 8/10</h3>
+                <p class="text-secondary text-lg mb-6">Which of these is closest to your main feeling?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q2', 'Calm or Content', 10)">
+                        🙂 Calm or Content
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q2', 'Anxious or Worried', 10)">
+                        😟 Anxious or Worried
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q2', 'Sad or Low', 10)">
+                        😢 Sad or Low
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q2', 'Angry or Frustrated', 10)">
+                        😠 Angry or Frustrated
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q2', 'Just Neutral', 10)">
+                        😐 Just Neutral
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(8)">
+                    Back
+                </button>
+            </div>
+
+            <!-- UPDATED: Quiz Step 10: Intensity (was Step 9) -->
+            <!-- NOW Physical Sensation -->
+            <div id="quiz-step-10" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 9/10</h3>
+                <p class="text-secondary text-lg mb-6">How does your body feel right now?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q3', 'Tight, jumpy, or shaky', 11)">
+                        Tight, jumpy, or shaky
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q3', 'Heavy, slow, or tired', 11)">
+                        Heavy, slow, or tired
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q3', 'Relaxed and calm', 11)">
+                        Relaxed and calm
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q3', 'I don\'t feel much', 11)">
+                        I don't feel much
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(9)">
+                    Back
+                </button>
+            </div>
+
+            <!-- UPDATED: Quiz Step 11: Analyze / Loading (was Step 10) -->
+            <!-- NOW Intensity -->
+            <div id="quiz-step-11" class="quiz-step hidden">
+                <h3 class="text-xl font-bold text-primary mb-4">Question 10/10</h3>
+                <p class="text-secondary text-lg mb-6">How strong is this feeling?</p>
+                <div class="space-y-3">
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q5', 'It\'s really strong / overwhelming', 12)">
+                        It's really strong / overwhelming
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q5', 'It\'s medium / I notice it', 12)">
+                        It's medium / I notice it
+                    </button>
+                    <button class="w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors" onclick="handleQuizAnswer('q5', 'It\'s pretty mild / in the background', 12)">
+                        It's pretty mild / in the background
+                    </button>
+                </div>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(10)">
+                    Back
+                </button>
+            </div>
+            
+            <!-- NEW: Quiz Step 12: AI Result Screen (was Step 11) -->
+            <!-- NOW Loading Screen -->
+            <div id="quiz-step-12" class="quiz-step hidden">
+                <h3 class="text-2xl font-bold text-primary mb-4">All Set! (10/10)</h3>
+                <p class="text-secondary mb-6">Thanks for sharing. We're ready to analyze your check-in.</p>
+                
+                <!-- Loading Spinner -->
+                <div id="mood-loader" class="hidden my-4 text-center">
+                    <div class="inline-block w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-secondary mt-2">Analyzing emotional tone...</p>
+                </div>
+                <p id="mood-result" class="hidden my-4 text-center font-medium text-lg"></p>
+
+                <!-- UPDATED: Added btn-hover-effect class -->
+                <button id="analyze-mood-button" class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-2 btn-hover-effect">
+                    ✨ Analyze My Mood
+                </button>
+                <button class="w-full text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-4" onclick="showQuizStep(11)">
+                    Back
+                </button>
+            </div>
+
+            <!-- NEW: Quiz Step 13: AI Result Screen (was Step 12) -->
+            <div id="quiz-step-13" class="quiz-step hidden">
+                <h3 class="text-2xl font-bold text-primary mb-2">✨ Your Custom AI Analysis</h3>
+                <p class="text-secondary mb-4">Here's a breakdown of your check-in and some next steps.</p>
+                
+                <!-- AI Content will be injected here -->
+                <div id="checkin-result-content" class="prose max-w-none text-primary bg-black/10 p-4 rounded-lg my-4">
+                    <!-- Loading spinner for this step -->
+                    <div id="checkin-result-loader" class="text-center py-8">
+                        <div class="inline-block w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                        <!-- UPDATED: Title and Quote -->
+                        <h3 class="text-2xl font-bold text-primary mt-6 mb-4">Generating Your Report...</h3>
+                        <p id="checkin-quote" class="text-lg text-secondary h-20">
+                            <!-- Quote will be injected here -->
+                        </p>
+                    </div>
+                </div>
+
+                <button id="modal-download-pdf-button" class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-4 btn-hover-effect">
+                    Download PDF Summary
+                </button>
+                <button class="w-full bg-white/10 hover:bg-white/20 text-primary font-medium py-2 px-4 rounded-lg transition-colors mt-3" onclick="closeModal('checkin-modal')">
+                    Done
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- 2. Mindfulness Module Modal -->
+    <div id="module-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 opacity-0 invisible" onclick="closeModal('module-modal')">
+        <div class="modal-content glass-modal w-full max-w-lg p-6 transform scale-95 overflow-y-auto max-h-[90vh]" onclick="event.stopPropagation()">
+            <h3 id="module-title" class="text-2xl font-bold text-primary mb-4">Module Title</h3>
+            <!-- FIX: Removed redundant text-secondary class -->
+            <div id="module-content" class="prose max-w-none text-primary">
+                <!-- Dynamic content will be injected here -->
+            </div>
+            <!-- UPDATED: Added btn-hover-effect class -->
+            <button class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-6 btn-hover-effect" onclick="closeModal('module-modal')">
+                Close Module
+            </button>
+        </div>
+    </div>
+    
+    <!-- REMOVED: Support Circle Modal -->
+
+    <!-- NEW: 4. PDF Loading Modal -->
+    <div id="pdf-loader-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 opacity-0 invisible">
+        <div class="modal-content glass-modal w-full max-w-md p-8 transform scale-95 text-center">
+            <div class="inline-block w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+            <h3 class="text-2xl font-bold text-primary mt-6 mb-4">Generating Your Report...</h3>
+            <p id="quote-display" class="text-lg text-secondary h-20">
+                <!-- Motivational quote will be injected here -->
+            </p>
+        </div>
+    </div>
+
+    <!-- NEW: 5. Login Modal -->
+    <div id="login-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 opacity-0 invisible" onclick="closeModal('login-modal')">
+        <div class="modal-content glass-modal w-full max-w-md p-6 transform scale-95" onclick="event.stopPropagation()">
+            <h3 class="text-2xl font-bold text-primary mb-4 text-center">Login</h3>
+            <p class="text-secondary mb-6 text-center">Welcome back!</p>
+            <div class="space-y-4">
+                <input id="login-email" type="email" placeholder="Email" class="w-full p-3 border-none rounded-lg bg-black/20 text-primary focus:outline-none focus:ring-2 ring-accent">
+                <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border-none rounded-lg bg-black/20 text-primary focus:outline-none focus:ring-2 ring-accent">
+            </div>
+            <div id="login-error" class="auth-error hidden"></div>
+            <button id="login-button" class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-6 btn-hover-effect">
+                Login
+            </button>
+            <button class="w-full text-primary text-sm font-medium py-2 px-4 rounded-lg transition-colors mt-2" onclick="openAuthModal('signup-modal')">
+                Don't have an account? Sign Up
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW: 6. Sign Up Modal -->
+    <div id="signup-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 opacity-0 invisible" onclick="closeModal('signup-modal')">
+        <div class="modal-content glass-modal w-full max-w-md p-6 transform scale-95" onclick="event.stopPropagation()">
+            <h3 class="text-2xl font-bold text-primary mb-4 text-center">Create Account</h3>
+            <p class="text-secondary mb-6 text-center">Join to track your progress.</p>
+            <div class="space-y-4">
+                <input id="signup-email" type="email" placeholder="Email" class="w-full p-3 border-none rounded-lg bg-black/20 text-primary focus:outline-none focus:ring-2 ring-accent">
+                <input id="signup-password" type="password" placeholder="Password" class="w-full p-3 border-none rounded-lg bg-black/20 text-primary focus:outline-none focus:ring-2 ring-accent">
+            </div>
+            <div id="signup-error" class="auth-error hidden"></div>
+            <button id="signup-button" class="w-full bg-accent/80 hover:bg-accent/100 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-6 btn-hover-effect">
+                Create Account
+            </button>
+            <button class="w-full text-primary text-sm font-medium py-2 px-4 rounded-lg transition-colors mt-2" onclick="openAuthModal('login-modal')">
+                Already have an account? Login
+            </button>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Logic -->
+    <!-- UPDATED: Added type="module" to allow firebase imports -->
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            updateDoc, 
+            onSnapshot, 
+            serverTimestamp,
+            Timestamp,
+            setLogLevel,
+            collection, // NEW: Import collection
+            addDoc // NEW: Import addDoc
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Mock Data ---
+        
+        const allModules = [
+            {
+                id: 'breathing',
+                title: 'Breathing Guidance',
+                description: 'A 2-minute tool to sync your breath and calm your mind.',
+                tags: ['anxious', 'angry', 'neutral', 'sad'],
+                content: `
+                    <p class="mb-4 text-center">Follow the animation. Breathe in as the circle expands, hold, and breathe out as it contracts.</p>
+                    <div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                        <div class="breath-circle absolute w-full h-full bg-accent rounded-full"></div>
+                        <!-- This div is the container for the animated text -->
+                        <div classid="breath-text-container" class="relative text-white text-lg font-semibold w-full h-full flex items-center justify-center">
+                            <!-- Content is injected by openModule() -->
+                        </div>
+                    </div>
+                    <p class="mt-4 text-center text-sm">Focus only on your breath. Repeat for 2 minutes.</p>
+                `
+            },
+            {
+                id: 'grounding',
+                title: '5 Senses Grounding',
+                description: 'Anchor yourself in the present moment. Ideal for high stress.',
+                tags: ['anxious', 'panicked', 'sad', 'angry'], // Added sad/angry for grounding
+                content: `
+                    <p class="mb-4">When you feel overwhelmed, use your senses to ground yourself. Acknowledge the following:</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>5 things you can see:</strong> The lamp, your fingernail, a crack in the ceiling.</li>
+                        <li><strong>4 things you can feel:</strong> The fabric of your shirt, the floor under your feet, the breeze.</li>
+                        <li><strong>3 things you can hear:</strong> The hum of a fan, a car outside, your own breathing.</li>
+                        <li><strong>2 things you can smell:</strong> Coffee, soap on your hands.</li>
+                        <li><strong>1 thing you can taste:</strong> The lingering taste of toothpaste, or take a sip of water.</li>
+                    </ul>
+                `
+            },
+            {
+                id: 'gratitude',
+                title: '3-Minute Gratitude Journal',
+                description: 'Shift your focus to the positive, even on difficult days.',
+                tags: ['sad', 'neutral', 'calm'],
+                content: `
+                    <p class="mb-4">Take just a few minutes to write down three things you are grateful for today. They don't have to be big.</p>
+                    <p class="mb-2">Examples:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>A warm cup of coffee.</li>
+                        <li>A supportive text from a friend.</li>
+                        <li>The feeling of sun on your face.</li>
+                    </ul>
+                    <p class="mt-4">Reflecting on the good, however small, can help reframe your perspective.</p>
+                `
+            },
+            {
+                id: 'body-scan',
+                title: 'Mindful Body Scan',
+                description: 'Reconnect with your body and release hidden tension.',
+                tags: ['anxious', 'sad', 'neutral'],
+                content: `
+                    <p class="mb-4">Start by focusing on your toes. Notice any sensations (warmth, cold, tension) without judging them. Mentally scan up through your feet, ankles, legs, torso, arms, neck, and head. Spend about 30 seconds on each part, simply observing.</p>
+                    <p>This exercise helps build a stronger mind-body connection and is a great way to check in with yourself.</p>
+                `
+            }
+        ];
+        
+        // NEW: Quotes for PDF Loader
+        const quotes = [
+            "Be patient with yourself. Nothing in nature blooms all year.",
+            "Self-care is giving the world the best of you, instead of what's left of you.",
+            "Progress, not perfection, is what matters.",
+            "You are stronger than you think. Keep going.",
+            "The best time for a new beginning is now.",
+            "A little compassion for yourself goes a long way."
+        ];
+
+        // REMOVED: allCircles constant
+
+        // --- State ---
+        
+        let currentMood = 'neutral';
+        let lastCheckinSummary = ''; // Store the user's quiz summary
+        let lastAIAnalysis = ''; // NEW: Store the AI's HTML analysis for the PDF
+        let currentQuizStep = 1;
+        // UPDATED: Added new keys, removed gender
+        let quizAnswers = { profession: '', q_prof: '', q_pers: '', q_social: '', q_sleep: '', q_cognitive: '', q_self: '', q1: '', q2: '', q3: '', q5: '' };
+        let currentOpenModuleId = null; // NEW: Track open module
+        
+        // NEW: Mood mapping for chart
+        const moodMap = { "angry": 1, "sad": 2, "anxious": 3, "neutral": 4, "calm": 5 };
+        let moodChartInstance = null; // NEW: To hold the chart object
+
+        // Use an empty string for the API key.
+        // The environment will automatically provide the key.
+        const GEMINI_API_KEY = "AIzaSyBrRFJUN8jFdmvNHc_TnLD7wltrFVO2OVQ"; 
+
+        // --- NEW: Firebase State ---
+        let db, auth, appId, userId;
+        let progressDocRef;
+        let userProgress = null; // Local cache for progress data
+
+        // --- DOM Elements ---
+        
+        const appBody = document.getElementById('app-body');
+        const checkinButtonMobile = document.getElementById('checkin-button-mobile'); // UPDATED
+        const checkinButtonDesktop = document.getElementById('checkin-button-desktop'); // NEW
+        const checkinModal = document.getElementById('checkin-modal');
+        // const moodInput = document.getElementById('mood-input'); // No longer primary
+        const analyzeMoodButton = document.getElementById('analyze-mood-button');
+        const moodLoader = document.getElementById('mood-loader');
+        const moodResult = document.getElementById('mood-result');
+        const currentMoodDisplay = document.getElementById('current-mood-display');
+        const currentMoodEmoji = document.getElementById('current-mood-emoji'); // NEW
+        
+        const recommendedGrid = document.getElementById('recommended-modules-grid');
+        // REMOVED: circlesGrid variable
+        
+        const moduleModal = document.getElementById('module-modal');
+        const moduleTitle = document.getElementById('module-title');
+        const moduleContent = document.getElementById('module-content');
+        
+        // REMOVED: circleModal and circleTitle variables
+
+        // NEW: PDF Loader DOM Elements
+        const downloadPdfButton = document.getElementById('download-pdf-button'); // RE-ADDED
+        const modalDownloadPdfButton = document.getElementById('modal-download-pdf-button'); // NEW
+        const pdfLoaderModal = document.getElementById('pdf-loader-modal');
+        const quoteDisplay = document.getElementById('quote-display');
+        const checkinResultContent = document.getElementById('checkin-result-content'); // NEW
+
+        // NEW: Progress Card DOM Elements ---
+        const checkinStreakDisplay = document.getElementById('checkin-streak-display');
+        const checkinStreakEmoji = document.getElementById('checkin-streak-emoji');
+        const mindfulnessSessionsDisplay = document.getElementById('mindfulness-sessions-display');
+        const mindfulnessEmoji = document.getElementById('mindfulness-emoji');
+        const modulesCompletedDisplay = document.getElementById('modules-completed-display'); // NEW
+        const modulesCompletedEmoji = document.getElementById('modules-completed-emoji'); // NEW
+        const badgesDisplay = document.getElementById('badges-display');
+
+        // NEW: Auth DOM Elements
+        const loginNavButton = document.getElementById('login-nav-button');
+        const signupNavButton = document.getElementById('signup-nav-button');
+        const logoutButton = document.getElementById('logout-button');
+        const loginModal = document.getElementById('login-modal');
+        const signupModal = document.getElementById('signup-modal');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginButton = document.getElementById('login-button');
+        const loginError = document.getElementById('login-error');
+        const signupEmail = document.getElementById('signup-email');
+        const signupPassword = document.getElementById('signup-password');
+        const signupButton = document.getElementById('signup-button');
+        const signupError = document.getElementById('signup-error');
+
+
+        // --- Gemini API Call Functions ---
+
+        /**
+         * A robust fetch wrapper with exponential backoff and retry logic.
+         */
+        async function fetchWithRetry(url, options, retries = 5, delay = 1000) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    // Only retry on 429 (Too Many Requests)
+                    if (response.status === 429 && retries > 0) {
+                        // Do not log to console, just wait and retry
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithRetry(url, options, retries - 1, delay * 2);
+                    }
+                    // For other errors, throw immediately
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                // Handle network errors or other fetch failures
+                if (retries > 0) {
+                    // Do not log to console, just wait and retry
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                } else {
+                    // After all retries, log the final error
+                    console.error("API call failed after retries:", error);
+                    throw error; // Re-throw the error to be caught by the caller
+                }
+            }
+        }
+
+        /**
+         * Calls the Gemini API to generate content.
+         */
+        async function callGemini(systemPrompt, userQuery) {
+            // Using the required model
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            };
+
+            try {
+                const result = await fetchWithRetry(apiUrl, options);
+                const candidate = result.candidates?.[0];
+                
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    return candidate.content.parts[0].text.trim();
+                } else {
+                    // Log the problematic response for debugging
+                    console.error("Invalid response structure from Gemini:", result);
+                    throw new Error("Invalid response from Gemini API.");
+                }
+            } catch (error) {
+                // Log the error that occurred during the API call
+                console.error("Error calling Gemini API:", error);
+                throw error; // Re-throw to be handled by the calling function
+            }
+        }
+
+
+        // --- Core Functions ---
+        
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            const modalContent = modal.querySelector('.modal-content');
+            if (show) {
+                modal.classList.remove('invisible', 'opacity-0');
+                modalContent.classList.remove('scale-95');
+            } else {
+                modal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
+                // Use setTimeout to match the transition duration
+                setTimeout(() => modal.classList.add('invisible'), 300);
+            }
+        }
+
+        // NEW: Open auth modals and close others
+        function openAuthModal(modalId) {
+            if (modalId === 'login-modal') {
+                toggleModal('signup-modal', false);
+                toggleModal('login-modal', true);
+            } else {
+                toggleModal('login-modal', false);
+                toggleModal('signup-modal', true);
+            }
+        }
+        
+        function closeModal(modalId) {
+            toggleModal(modalId, false);
+            
+            // --- NEW: Track Mindfulness Session ---
+            if (modalId === 'module-modal') {
+                // If a module is closed, count it as a completed session
+                if (currentOpenModuleId && currentOpenModuleId !== 'ai-coach') {
+                    updateMindfulnessSession();
+                    updateModulesCompleted(currentOpenModuleId); // FIX: Was missing
+                }
+                currentOpenModuleId = null; // Reset
+            }
+
+            // Reset quiz when modal is closed
+            if (modalId === 'checkin-modal') {
+                // Wait for the fade-out animation to complete
+                setTimeout(() => {
+                    showQuizStep(1); // Reset to the first step
+                    // Clear all previous answers
+                    // UPDATED: Reset new keys
+                    quizAnswers = { profession: '', q_prof: '', q_pers: '', q_social: '', q_sleep: '', q_cognitive: '', q_self: '', q1: '', q2: '', q3: '', q5: '' };
+                    // Ensure loader is hidden and button is shown on the final step
+                    moodLoader.classList.add('hidden');
+                    moodResult.classList.add('hidden');
+                    analyzeMoodButton.classList.remove('hidden');
+                    
+                    // NEW: Reset the check-in result screen
+                    // UPDATED: Added quote placeholder
+                    checkinResultContent.innerHTML = `
+                        <div id="checkin-result-loader" class="text-center py-8">
+                            <div class="inline-block w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                            <h3 class="text-2xl font-bold text-primary mt-6 mb-4">Generating Your Report...</h3>
+                            <p id="checkin-quote" class="text-lg text-secondary h-20">
+                                <!-- Quote will be injected here -->
+                            </p>
+                        </div>
+                    `;
+                    
+                }, 300); // This duration should match the modal transition
+            }
+        }
+
+        /**
+         * Shows a specific step in the check-in quiz.
+         * @param {number} stepNum - The step number to show.
+         */
+        function showQuizStep(stepNum) {
+            currentQuizStep = stepNum;
+            const steps = document.querySelectorAll('.quiz-step');
+            steps.forEach((step, index) => {
+                // The step ID is "quiz-step-N", where N is index + 1
+                if (index + 1 === stepNum) {
+                    step.classList.remove('hidden');
+                } else {
+                    step.classList.add('hidden');
+                }
+            });
+        }
+
+        /**
+         * Stores quiz answer and moves to the next step.
+         * Special handling for 'profession' to trigger dynamic questions.
+         * @param {string} question - The question key (e.g., 'q1').
+         * @param {string} answer - The answer value.
+         * @param {number} nextStep - The next step number to show.
+         */
+        function handleQuizAnswer(question, answer, nextStep) {
+            quizAnswers[question] = answer;
+            
+            // Special: If this is the profession question, set up the next dynamic step
+            if (question === 'profession') {
+                setupDynamicQuestions(answer);
+            }
+            
+            showQuizStep(nextStep);
+        }
+
+        /**
+         * NEW: Sets up the dynamic profession-based quiz question.
+         * @param {string} profession - The profession selected by the user.
+         */
+        function setupDynamicQuestions(profession) {
+            const titleEl = document.getElementById('quiz-step-3-title');
+            const subtitleEl = document.getElementById('quiz-step-3-subtitle');
+            const answersEl = document.getElementById('quiz-step-3-answers');
+            answersEl.innerHTML = ''; // Clear old buttons
+
+            let questions = {};
+
+            switch (profession) {
+                case 'Student':
+                    titleEl.textContent = "Question 2/10";
+                    subtitleEl.textContent = "As a student, what's the main pressure point?";
+                    questions = {
+                        "Exams or Grades": "Exams/Grades",
+                        "Homework or Deadlines": "Homework/Deadlines",
+                        "Social Life or Friends": "Social Life",
+                        "Future Plans / Career Worries": "Future Plans"
+                    };
+                    break;
+                case 'Tech Professional':
+                    titleEl.textContent = "Question 2/10";
+                    subtitleEl.textContent = "As a tech professional, what's the main pressure point?";
+                    questions = {
+                        "Project Deadlines or Sprint": "Project Deadlines",
+                        "Work/Life Balance": "Work/Life Balance",
+                        "Team Dynamics or Meetings": "Team Dynamics",
+                        "Imposter Syndrome / Staying Up-to-Date": "Imposter Syndrome"
+                    };
+                    break;
+                case 'Healthcare Worker':
+                    titleEl.textContent = "Question 2/10";
+                    subtitleEl.textContent = "As a healthcare worker, what's the main pressure point?";
+                    questions = {
+                        "Long Shifts or Fatigue": "Long Shifts/Fatigue",
+                        "Patient Care / Emotional Toll": "Patient Care/Emotional Toll",
+                        "Administration or Paperwork": "Administration",
+                        "Work/Life Balance": "Work/Life Balance"
+                    };
+                    break;
+                case 'Artist / Creative':
+                    titleEl.textContent = "Question 2/10";
+                    subtitleEl.textContent = "As a creative, what's the main pressure point?";
+                    questions = {
+                        "Creative Block or Self-Doubt": "Creative Block",
+                        "Financial Instability / Gigs": "Financial Instability",
+                        "Client Feedback or Deadlines": "Client Feedback",
+                        "Motivation / Burnout": "Motivation/Burnout"
+                    };
+                    break;
+                default: // 'Other'
+                    titleEl.textContent = "Question 2/10";
+                    subtitleEl.textContent = "What's the main pressure point in your work?";
+                    questions = {
+                        "Workload or Deadlines": "Workload",
+                        "Work/Life Balance": "Work/Life Balance",
+                        "Colleagues or Management": "Colleagues",
+                        "Job Security or Finances": "Job Security"
+                    };
+            }
+
+            // Create buttons for the questions
+            for (const [text, value] of Object.entries(questions)) {
+                const button = document.createElement('button');
+                button.className = "w-full text-left bg-white/10 hover:bg-white/20 text-primary py-3 px-5 rounded-lg transition-colors";
+                button.textContent = text;
+                button.onclick = () => handleQuizAnswer('q_prof', value, 4); // All go to step 4 (Personal)
+                answersEl.appendChild(button);
+            }
+        }
+
+
+        /**
+         * Analyzes mood using the Gemini API based on quiz answers.
+         */
+        async function analyzeMood() {
+            // Construct a summary of quiz answers
+            // UPDATED: Added new keys
+            const quizSummary = `User's profile: 
+Profession: ${quizAnswers.profession || 'Not answered'}
+
+Key Stressors:
+Profession-Specific: ${quizAnswers.q_prof || 'Not answered'}
+Personal-Life: ${quizAnswers.q_pers || 'Not answered'}
+
+Core Well-being:
+Social-Connection: ${quizAnswers.q_social || 'Not answered'}
+Sleep Quality: ${quizAnswers.q_sleep || 'Not answered'}
+Cognitive State: ${quizAnswers.q_cognitive || 'Not answered'}
+Self-Perception: ${quizAnswers.q_self || 'Not answered'}
+
+Current State:
+1. Energy Level: ${quizAnswers.q1 || 'Not answered'}
+2. Core Feeling: ${quizAnswers.q2 || 'Not answered'}
+3. Body Sensation: ${quizAnswers.q3 || 'Not answered'}
+4. Intensity: ${quizAnswers.q5 || 'Not answered'}`;
+            
+            lastCheckinSummary = quizSummary; // Save for the AI Coach
+            
+            moodLoader.classList.remove('hidden');
+            moodResult.classList.add('hidden');
+            moodResult.classList.remove('text-red-400'); // Reset error color
+            moodResult.textContent = ''; // Clear old error
+            analyzeMoodButton.classList.add('hidden');
+            
+            let newMood = 'neutral';
+            
+            try {
+                const systemPrompt = "You are an expert emotion classifier. A user has provided profile information and quiz answers. Use *all* this information to provide a single-word classification: `calm`, `anxious`, `sad`, `angry`, or `neutral`. Do not add any other text or punctuation.";
+                const detectedMood = await callGemini(systemPrompt, quizSummary);
+
+                const validMoods = ['calm', 'anxious', 'sad', 'angry', 'neutral'];
+                if (!validMoods.includes(detectedMood.toLowerCase())) {
+                    console.warn("Gemini returned non-standard mood:", detectedMood);
+                    throw new Error("Received an invalid mood response.");
+                }
+                
+                newMood = detectedMood.toLowerCase();
+                
+                // --- SUCCESS ---
+                // 1. Update streak and UI in the background
+                await updateCheckinStreak();
+                await saveMoodToHistory(newMood); // NEW: Save mood to Firestore
+                updateUI(newMood);
+                
+                // 2. Show the result screen (Step 13)
+                showQuizStep(13);
+                
+                // 3. Asynchronously load the AI analysis into Step 13
+                loadCheckinAnalysis(newMood); 
+
+            } catch (error) {
+                // --- FAILURE ---
+                console.error("Mood analysis failed:", error);
+                
+                // Don't close the modal. Show an error message inside it.
+                moodLoader.classList.add('hidden'); // Hide loader
+                moodResult.classList.remove('hidden'); // Show result area
+                moodResult.textContent = "Error: Could not analyze mood. Please try again.";
+                moodResult.classList.add('text-red-400'); // Make it red
+                
+                // Show the "Analyze" button again so they can retry
+                analyzeMoodButton.classList.remove('hidden');
+            }
+        }
+        
+        /**
+         * Updates the entire UI based on the new mood.
+         */
+        function updateUI(newMood) {
+            currentMood = newMood;
+            
+            // Update Mood Text
+            currentMoodDisplay.textContent = newMood;
+            
+            // NEW: Update Mood Emoji with "pop" animation
+            const emojiMap = {
+                neutral: '😐',
+                calm: '😌',
+                anxious: '😟',
+                sad: '😢',
+                angry: '😠'
+            };
+            currentMoodEmoji.classList.add('scale-0', 'opacity-0'); // Shrink and fade out
+            setTimeout(() => {
+                currentMoodEmoji.textContent = emojiMap[newMood] || '😐';
+                currentMoodEmoji.classList.remove('scale-0', 'opacity-0'); // Grow and fade in
+            }, 200); // Wait for fade out
+            
+            // Update Theme
+            const themes = ['theme-neutral', 'theme-calm', 'theme-anxious', 'theme-sad', 'theme-angry'];
+            appBody.classList.remove(...themes); // This is document.body
+            appBody.classList.add(`theme-${newMood}`); // This adds 'theme-calm' to <body>
+            
+            // Update Modules
+            renderRecommendedModules();
+        }
+
+        /**
+         * Renders the recommended modules based on the current mood.
+         */
+        function renderRecommendedModules() {
+            recommendedGrid.innerHTML = ''; 
+            
+            const recommended = allModules.filter(module => 
+                module.tags.includes(currentMood) || module.tags.includes('neutral')
+            );
+            
+            recommended.forEach(module => {
+                const card = document.createElement('div');
+                card.className = 'glass-card p-6 cursor-pointer transition-all duration-300';
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-primary mb-2">${module.title}</h3>
+                    <p class="text-secondary mb-4 min-h-[3rem]">${module.description}</p>
+                    <span class="font-medium text-accent">Start Module &rarr;</span>
+                `;
+                card.onclick = () => openModule(module.id);
+                recommendedGrid.appendChild(card);
+            });
+
+            // ** NEW: AI Coach Module **
+            // Show AI coach button if *any* checkin has been completed
+            if (lastCheckinSummary !== '') {
+                const aiCard = document.createElement('div');
+                aiCard.className = 'glass-card p-6 cursor-pointer transition-all duration-300 border-2 border-accent';
+                aiCard.innerHTML = `
+                    <h3 class="text-xl font-bold text-accent mb-2">✨ Your AI Coach</h3>
+                    <p class="text-secondary mb-4 min-h-[3rem]">A custom exercise generated just for you, based on your current feelings.</p>
+                    <span class="font-medium text-accent">Create Exercise &rarr;</span>
+                `;
+                aiCard.onclick = () => openAiModule();
+                recommendedGrid.appendChild(aiCard);
+            }
+        }
+        
+        // REMOVED: renderCircles() function
+
+        /**
+         * Opens the mindfulness module modal with specific content.
+         */
+        function openModule(moduleId, overrideTitle = null) {
+            currentOpenModuleId = moduleId; // NEW: Track opened module
+            const module = allModules.find(m => m.id === moduleId);
+            if (module) {
+                moduleTitle.textContent = overrideTitle || module.title;
+                moduleContent.innerHTML = module.content;
+                
+                // FIX: Special handling for breathing module text
+                if (module.id === 'breathing') {
+                    // This injects the spans to restart the new, corrected animations
+                    const textContainer = moduleContent.querySelector('[classid="breath-text-container"]');
+                    if (textContainer) {
+                        textContainer.innerHTML = `
+                            <span class="absolute" style="animation: pulse-text-inhale 8s ease-in-out infinite;">Inhale...</span>
+                            <span class="absolute" style="animation: pulse-text-exhale 8s ease-in-out infinite;">...Exhale</span>
+                        `;
+                    }
+                }
+                toggleModal('module-modal', true);
+            }
+        }
+
+        /**
+         * Generates the AI analysis for the *main* module modal
+         */
+        async function openAiModule() {
+            currentOpenModuleId = 'ai-coach'; // NEW: Track this "module"
+            toggleModal('module-modal', true);
+            moduleTitle.textContent = "✨ Generating Your AI Analysis...";
+            // UPDATED: Show quote in loader
+            moduleContent.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-block w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <!-- UPDATED: Title and Quote -->
+                    <h3 class="text-2xl font-bold text-primary mt-6 mb-4">Generating Your Report...</h3>
+                    <p id="ai-coach-quote" class="text-lg text-secondary h-20">
+                        <!-- Quote will be injected here -->
+                    </p>
+                </div>
+            `;
+            // NEW: Add quote
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('ai-coach-quote').textContent = `"${randomQuote}"`;
+
+            try {
+                // Get the AI analysis
+                const htmlContent = await getAIAnalysis(currentMood);
+                // Save it for the PDF
+                lastAIAnalysis = htmlContent;
+
+                moduleTitle.textContent = "✨ Your Custom AI Analysis";
+                moduleContent.innerHTML = htmlContent;
+
+            } catch (error) {
+                moduleTitle.textContent = "Error";
+                moduleContent.innerHTML = `<p class="text-red-400">Sorry, we couldn't generate an analysis for you at this time. Please try again later.</p>`;
+            }
+        }
+
+        /**
+         * NEW: Asynchronously loads the AI analysis into the check-in modal (Step 12).
+         */
+        async function loadCheckinAnalysis(newMood) {
+            // NEW: Add quote
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            const quoteEl = document.getElementById('checkin-quote');
+            if (quoteEl) {
+                quoteEl.textContent = `"${randomQuote}"`;
+            }
+
+            try {
+                // Get the AI analysis
+                const htmlContent = await getAIAnalysis(newMood);
+                // Save it for the PDF
+                lastAIAnalysis = htmlContent;
+                // Display it
+                checkinResultContent.innerHTML = htmlContent;
+
+            } catch (error) {
+                console.error("Error loading check-in analysis:", error);
+                checkinResultContent.innerHTML = `<p class="text-red-400">Sorry, we couldn't generate an analysis for you at this time. Please try again later.</p>`;
+            }
+        }
+
+        /**
+         * NEW: Re-usable function to get AI analysis content.
+         */
+        async function getAIAnalysis(mood) {
+            const userText = lastCheckinSummary || "no specific check-in provided";
+            // UPDATED: Prompt now includes all new keys and asks for 5 sections
+            const systemPrompt = `You are an expert AI-powered mental health analyst and strategist. A user is feeling '${mood}'.
+
+**User's Profile & Quiz Summary:**
+${userText}
+
+**Your Task:**
+Act as a professional, supportive AI counselor. Write a formal, detailed, and comprehensive multi-part response (around 400-450 words). Your tone should be empathetic but also analytical and professional.
+
+**1. Detailed Mood Analysis:**
+Start with an empathetic, formal paragraph. Acknowledge their core feeling ('${mood}'). Provide a detailed analysis of *why* their specific combination of stressors (e.g., "${quizAnswers.q_prof}" from their work as a "${quizAnswers.profession}", "${quizAnswers.q_pers}" from their personal life) is likely contributing to their self-reported emotional and physical state.
+
+**2. Cognitive & Behavioral Strategy:**
+Write a second paragraph that *specifically* addresses their answers for Sleep Quality ('${quizAnswers.q_sleep}') and Cognitive State ('${quizAnswers.q_cognitive}'). Frame this as a "long-term approach" to manage thought patterns and improve sleep hygiene or energy.
+
+**3. Connection & Relationships Strategy:**
+Write a third paragraph that *specifically* addresses their answer to "How connected have you felt?" ('${quizAnswers.q_social}'). Provide insight and one key strategy related to social connection or isolation.
+
+**4. Self-Perception & Reflection:**
+Write a fourth paragraph that *specifically* addresses their answer to "How have you been feeling about yourself?" ('${quizAnswers.q_self}'). Provide a supportive insight and a small exercise for self-compassion or processing guilt.
+
+**5. Actionable Recommendations & Exercises:**
+Write a final section with a detailed list of 3-4 specific, actionable recommendations based on their *entire* profile. Use an <ul> list with <strong> tags for the exercise titles. These should be concrete, evidence-based exercises.
+
+**Format:**
+Use simple HTML (<p>, <ul>, <li>, <strong>). Do not use <html>, <body>, or <head> tags. Your response must be safe, supportive, and professional.`;
+            
+            return await callGemini(systemPrompt, "Please generate a formal, detailed analysis and set of recommendations based on my check-in.");
+        }
+        
+        // REMOVED: openCircle() function
+
+        // --- NEW: PDF Generation Function ---
+
+        /**
+         * Generates and downloads a PDF summary report.
+         */
+        async function downloadReport() {
+            // Check if user has checked in and we have analysis
+            if (lastCheckinSummary === '' || lastAIAnalysis === '') {
+                // Can't use alerts, so we'll just show a message in the module modal
+                moduleTitle.textContent = "Notice";
+                moduleContent.innerHTML = `<p class="text-secondary">Please complete a "Quick Check-In" first so we have data to build your report.</p>`;
+                toggleModal('module-modal', true);
+                return;
+            }
+
+            // 1. Show Loader & Quote
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            quoteDisplay.textContent = `"${randomQuote}"`;
+            toggleModal('pdf-loader-modal', true);
+
+            // 2. Wait for 4-second internal loading time
+            await new Promise(resolve => setTimeout(resolve, 4000));
+
+            try {
+                // 3. Generate PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Get current date
+                const today = new Date().toLocaleDateString();
+
+                // Title
+                doc.setFont("Inter", "bold");
+                doc.setFontSize(22);
+                doc.text("Your Emotional Health Index Summary", 105, 20, { align: 'center' });
+                doc.setFontSize(12);
+                doc.setFont("Inter", "normal");
+                doc.text(today, 105, 28, { align: 'center' });
+
+                // Section 1: Your Recent Check-In
+                doc.setFont("Inter", "bold");
+                doc.setFontSize(16);
+                doc.text("Your Recent Check-In", 14, 45);
+                doc.setLineWidth(0.5);
+                doc.line(14, 47, 196, 47); // Underline
+                
+                doc.setFont("Inter", "normal");
+                doc.setFontSize(11);
+                // Clean up the summary for the PDF
+                // UPDATED: Added new keys
+                const cleanSummary = lastCheckinSummary.replace(/User's profile:\s*|Key Stressors:\s*|Core Well-being:\s*|Social-Connection:\s*|Current State:\s*/g, (match) => `\n${match.trim()}\n`);
+                const summaryLines = doc.splitTextToSize(cleanSummary, 182);
+                doc.text(summaryLines, 14, 55);
+                
+                // Get Y position after the first text block
+                let yOffset = doc.getTextDimensions(summaryLines).h + 60;
+                
+                // Check if we need a new page
+                if (yOffset > 250) {
+                    doc.addPage();
+                    yOffset = 20;
+                }
+
+                // Section 2: AI Analysis & Recommendations
+                doc.setFont("Inter", "bold");
+                doc.setFontSize(16);
+                doc.text("AI Analysis & Recommendations", 14, yOffset);
+                doc.line(14, yOffset + 2, 196, yOffset + 2); // Underline
+
+                doc.setFont("Inter", "normal");
+                doc.setFontSize(11);
+
+                // --- Convert HTML Analysis to PDF Text ---
+                // This is a simple converter. jsPDF doesn't render HTML directly.
+                const recommendations = lastAIAnalysis
+                    .replace(/<p>/g, '\n')
+                    .replace(/<\/p>/g, '\n')
+                    .replace(/<ul>/g, '\n')
+                    .replace(/<\/ul>/g, '\n')
+                    .replace(/<li>/g, '  • ')
+                    .replace(/<\/li>/g, '\n')
+                    .replace(/<strong>/g, '')
+                    .replace(/<\/strong>/g, '')
+                    .replace(/<br>/g, '\n')
+                    .replace(/\n\s*\n/g, '\n'); // Remove extra blank lines
+                
+                const recommendationLines = doc.splitTextToSize(recommendations, 182);
+                doc.text(recommendationLines, 14, yOffset + 10);
+                
+                // Footer
+                doc.setFont("Inter", "italic");
+                doc.setFontSize(9);
+                doc.setTextColor(150);
+                doc.text("Generated by Emotional Health Index. This is not a replacement for professional medical advice.", 105, 285, { align: 'center' });
+
+                // 4. Save PDF
+                doc.save("Emotional_Health_Index_Summary.pdf");
+
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                // If it fails, we can show an error in the module modal
+                moduleTitle.textContent = "Error";
+                moduleContent.innerHTML = `<p class="text-red-400">Sorry, we couldn't generate your PDF report at this time. Please try again later.</p>`;
+                toggleModal('module-modal', true);
+            } finally {
+                // 5. Hide Loader
+                toggleModal('pdf-loader-modal', false);
+            }
+        }
+        
+        // --- NEW: Firebase & Progress Functions ---
+
+        /**
+         * Initializes Firebase app, auth, and Firestore.
+         */
+        async function initializeFirebase() {
+            try {
+                // Get config from global scope (provided by environment)
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                if (!firebaseConfig.apiKey) {
+                    console.error("Firebase config is missing.");
+                    return;
+                }
+                
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                
+                // Enable debug logging for Firestore
+                setLogLevel('Debug');
+
+                // Sign in
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Set up auth state listener
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        if (user.isAnonymous) {
+                            // User is anonymous
+                            loginNavButton.classList.remove('hidden');
+                            signupNavButton.classList.remove('hidden');
+                            logoutButton.classList.add('hidden');
+                        }
+                        // User is signed in (either anon or real), set up the real-time progress listener
+                        setupRealtimeListeners(); // UPDATED: Renamed function
+                    } else {
+                        // This case should ideally not be hit with our setup, but as a fallback:
+                        userId = null;
+                        userProgress = null;
+                        updateProgressUI(getInitialProgressData());
+                        loginNavButton.classList.remove('hidden');
+signupNavButton.classList.remove('hidden');
+                        logoutButton.classList.add('hidden');
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+            }
+        }
+
+        /**
+         * Sets up the real-time listener for the user's progress document.
+         */
+        function setupRealtimeListeners() { // UPDATED: Renamed function
+            if (!userId) return;
+
+            // --- 1. Progress Card Listener ---
+            // Define the path to the user's private progress document
+            const docPath = `artifacts/${appId}/users/${userId}/progress/main`;
+            progressDocRef = doc(db, docPath);
+
+            // Listen for real-time updates
+            onSnapshot(progressDocRef, async (docSnap) => {
+                if (docSnap.exists()) {
+                    // Document exists, load the data
+                    userProgress = docSnap.data();
+                    
+                    // --- Data schema migration (optional but good practice) ---
+                    // Check for new fields and apply defaults if missing
+                    let needsUpdate = false;
+                    const defaults = getInitialProgressData();
+                    for(const key in defaults) {
+                        if (userProgress[key] === undefined) {
+                            userProgress[key] = defaults[key];
+                            needsUpdate = true;
+                        }
+                    }
+                    if(needsUpdate) {
+                        await updateDoc(progressDocRef, userProgress);
+                    }
+                    // --- End migration ---
+
+                } else {
+                    // No document found, create one for the new user
+                    userProgress = getInitialProgressData();
+                    try {
+                        await setDoc(progressDocRef, userProgress);
+                    } catch (error) {
+                        console.error("Error creating progress document:", error);
+                    }
+                }
+                
+                // Update the UI with the latest data
+                updateProgressUI(userProgress);
+            });
+
+            // --- 2. NEW: Mood Chart Listener ---
+            const moodHistoryCollection = collection(db, `artifacts/${appId}/users/${userId}/moodHistory`);
+            
+            // Listen for changes to the mood history
+            // We fetch all and sort in JS to avoid needing a composite index (per instructions)
+            onSnapshot(moodHistoryCollection, (querySnapshot) => {
+                const moodData = [];
+                querySnapshot.forEach((doc) => {
+                    moodData.push(doc.data());
+                });
+
+                // Sort by timestamp in JavaScript
+                moodData.sort((a, b) => {
+                    const tsA = a.timestamp ? a.timestamp.toMillis() : 0;
+                    const tsB = b.timestamp ? b.timestamp.toMillis() : 0;
+                    return tsA - tsB;
+                });
+                
+                // Get only the last 7 entries
+                const last7Entries = moodData.slice(-7);
+
+                // Prepare data for Chart.js
+                const labels = last7Entries.map(d => 
+                    d.timestamp ? new Date(d.timestamp.toMillis()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'
+                );
+                const data = last7Entries.map(d => d.numericValue);
+
+                // Render the chart
+                renderMoodChart(labels, data);
+            });
+        }
+
+        /**
+         * NEW: Renders the mood chart using Chart.js
+         */
+        function renderMoodChart(labels, data) {
+            const ctx = document.getElementById('moodChart');
+            if (!ctx) return; // Exit if canvas not found
+
+            // Get theme-aware colors
+            const gridColor = 'rgba(255, 255, 255, 0.2)';
+            const labelColor = 'rgba(255, 255, 255, 0.9)';
+            
+            // Destroy the old chart instance if it exists, to prevent flickering
+            if (moodChartInstance) {
+                moodChartInstance.destroy();
+            }
+
+            // Create the new chart
+            moodChartInstance = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mood Level',
+                        data: data,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false // Hide the legend
+                        },
+                        tooltip: {
+                            // Custom tooltip to show mood name
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const moodName = Object.keys(moodMap).find(key => moodMap[key] === value) || 'Unknown';
+                                    return `Mood: ${moodName.charAt(0).toUpperCase() + moodName.slice(1)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 5,
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: labelColor,
+                                // This is the key: replace numbers with mood names
+                                callback: function(value, index, ticks) {
+                                    switch(value) {
+                                        case 5: return 'Calm';
+                                        case 4: return 'Neutral';
+                                        case 3: return 'Anxious';
+                                        case 2: return 'Sad';
+                                        case 1: return 'Angry';
+                                        default: return '';
+                                    }
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: labelColor
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        /**
+         * Returns a default progress object for a new user.
+         */
+        function getInitialProgressData() {
+            return {
+                dailyCheckinStreak: 0,
+                lastCheckinTimestamp: null,
+                mindfulnessSessionsThisWeek: 0,
+                weekStartDate: null,
+                badges: [],
+                modulesCompleted: [] // NEW
+            };
+        }
+
+        /**
+         * Updates the "Your Progress" card in the DOM.
+         */
+        function updateProgressUI(progress) {
+            if (!progress) return;
+
+            // Update Check-in Streak
+            checkinStreakDisplay.textContent = `You're on a ${progress.dailyCheckinStreak}-day streak!`;
+            if (progress.dailyCheckinStreak > 0) {
+                checkinStreakEmoji.classList.remove('opacity-0');
+            } else {
+                checkinStreakEmoji.classList.add('opacity-0');
+            }
+
+            // Update Mindfulness Sessions
+            mindfulnessSessionsDisplay.textContent = `${progress.mindfulnessSessionsThisWeek} sessions this week`;
+            if (progress.mindfulnessSessionsThisWeek > 0) {
+                mindfulnessEmoji.classList.remove('opacity-0');
+            } else {
+                mindfulnessEmoji.classList.add('opacity-0');
+            }
+
+            // NEW: Update Modules Completed
+            const modulesCount = progress.modulesCompleted ? progress.modulesCompleted.length : 0;
+            modulesCompletedDisplay.textContent = `${modulesCount} modules completed`;
+            if (modulesCount > 0) {
+                modulesCompletedEmoji.classList.remove('opacity-0');
+            } else {
+                modulesCompletedEmoji.classList.add('opacity-0');
+            }
+
+            // Update Badges
+            badgesDisplay.innerHTML = ''; // Clear existing badges
+            if (progress.badges && progress.badges.length > 0) {
+                progress.badges.forEach(badge => {
+                    const span = document.createElement('span');
+                    span.className = 'text-3xl';
+                    span.title = badge.title;
+                    span.textContent = badge.emoji;
+                    badgesDisplay.appendChild(span);
+                });
+            } else {
+                badgesDisplay.innerHTML = '<span class="text-gray-400 text-sm">No badges yet.</span>';
+            }
+        }
+
+        /**
+         * Updates the user's check-in streak in Firestore.
+         */
+        async function updateCheckinStreak() {
+            if (!userProgress || !progressDocRef) return;
+
+            const now = new Date();
+            let newStreak = userProgress.dailyCheckinStreak;
+            let newBadges = [ ...userProgress.badges ];
+            
+            const lastCheckinDate = userProgress.lastCheckinTimestamp ? userProgress.lastCheckinTimestamp.toDate() : null;
+
+            if (!lastCheckinDate || !isToday(lastCheckinDate)) {
+                // Not checked in yet today
+                if (lastCheckinDate && isYesterday(lastCheckinDate)) {
+                    // It's a consecutive day
+                    newStreak += 1;
+                } else {
+                    // Streak is broken or it's the first check-in
+                    newStreak = 1;
+                }
+
+                // Add "First Check-in" badge
+                newBadges = addBadge(newBadges, { emoji: '🥇', title: 'First Check-in' });
+
+                // Add "5-Day Streak" badge
+                if (newStreak >= 5) {
+                    newBadges = addBadge(newBadges, { emoji: '🔥', title: '5-Day Streak' });
+                }
+
+                try {
+                    await updateDoc(progressDocRef, {
+                        dailyCheckinStreak: newStreak,
+                        lastCheckinTimestamp: serverTimestamp(),
+                        badges: newBadges
+                    });
+                } catch (error) {
+                    console.error("Error updating check-in streak:", error);
+                }
+            }
+            // If already checked in today, do nothing.
+        }
+
+        /**
+         * NEW: Saves the user's mood to their history collection.
+         */
+        async function saveMoodToHistory(mood) {
+            if (!userId || !db) return;
+
+            const numericValue = moodMap[mood] || 0; // Get 1-5 value from map
+            
+            try {
+                const moodHistoryCollection = collection(db, `artifacts/${appId}/users/${userId}/moodHistory`);
+                await addDoc(moodHistoryCollection, {
+                    mood: mood,
+                    numericValue: numericValue,
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) {
+                console.error("Error saving mood to history:", error);
+            }
+        }
+
+        /**
+         * Updates the user's mindfulness session count in Firestore.
+         */
+        async function updateMindfulnessSession() {
+            if (!userProgress || !progressDocRef) return;
+
+            const now = new Date();
+            let newCount = userProgress.mindfulnessSessionsThisWeek;
+            let newWeekStart = userProgress.weekStartDate ? userProgress.weekStartDate.toDate() : null;
+
+            if (!newWeekStart || now.getTime() > newWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000) {
+                // It's a new week
+                newCount = 1;
+                newWeekStart = getStartOfWeek();
+            } else {
+                // It's the same week
+                newCount += 1;
+            }
+
+            try {
+                await updateDoc(progressDocRef, {
+                    mindfulnessSessionsThisWeek: newCount,
+                    // Convert JS Date back to Firestore Timestamp for saving
+                    weekStartDate: Timestamp.fromDate(newWeekStart) 
+                });
+            } catch (error) {
+                console.error("Error updating mindfulness sessions:", error);
+            }
+        }
+
+        /**
+         * NEW: Updates modules completed in Firestore.
+         */
+        async function updateModulesCompleted(moduleId) {
+            if (!userProgress || !progressDocRef) return;
+            
+            // Ensure modulesCompleted is an array
+            const currentModules = userProgress.modulesCompleted || [];
+
+            if (!currentModules.includes(moduleId)) {
+                const newModules = [...currentModules, moduleId];
+                try {
+                    await updateDoc(progressDocRef, {
+                        modulesCompleted: newModules
+                    });
+                } catch (error) {
+                    console.error("Error updating modules completed:", error);
+                }
+            }
+        }
+
+        // --- NEW: Helper Functions ---
+
+        /**
+         * Checks if a date is today.
+         * @param {Date} date - The date to check.
+         */
+        function isToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                   date.getMonth() === today.getMonth() &&
+                   date.getFullYear() === today.getFullYear();
+        }
+
+        /**
+         * Checks if a date was yesterday.
+         * @param {Date} date - The date to check.
+         */
+        function isYesterday(date) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            return date.getDate() === yesterday.getDate() &&
+                   date.getMonth() === yesterday.getMonth() &&
+                   date.getFullYear() === yesterday.getFullYear();
+        }
+
+        /**
+         * Gets the start of the current week (Sunday).
+         */
+        function getStartOfWeek() {
+            const now = new Date();
+            const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+            const diff = now.getDate() - dayOfWeek;
+            const startOfWeek = new Date(now.setDate(diff));
+            startOfWeek.setHours(0, 0, 0, 0);
+            return startOfWeek;
+        }
+
+        /**
+         * Adds a badge to the array if it doesn't already exist.
+         * @param {Array} badges - The current badge array.
+         * @param {Object} badge - The badge to add { emoji, title }.
+         */
+        function addBadge(badges, badge) {
+            if (!badges.find(b => b.title === badge.title)) {
+                return [ ...badges, badge ];
+            }
+            return badges;
+        }
+
+        
+        // --- Accessibility Functions ---
+        
+        function toggleHighContrast() {
+            appBody.classList.toggle('high-contrast');
+        }
+        
+        function toggleDyslexiaFont() {
+            appBody.classList.toggle('dyslexia-font');
+        }
+
+        // --- NEW: Auth Functions ---
+
+        async function handleSignUp() {
+            // NEW: Guard clause
+            if (!auth) {
+                signupError.textContent = "Authentication service is not available. Please try again later.";
+                signupError.classList.remove('hidden');
+                return;
+            }
+            const email = signupEmail.value;
+            const password = signupPassword.value;
+            signupError.classList.add('hidden');
+            signupError.textContent = '';
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // This will trigger onAuthStateChanged, which handles the rest
+                closeModal('signup-modal');
+            } catch (error) {
+                console.error("Sign up error:", error.code);
+                signupError.textContent = error.message;
+                signupError.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogin() {
+            // NEW: Guard clause
+            if (!auth) {
+                loginError.textContent = "Authentication service is not available. Please try again later.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            loginError.classList.add('hidden');
+            loginError.textContent = '';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // This will trigger onAuthStateChanged, which handles the rest
+                closeModal('login-modal');
+            } catch (error) {
+                console.error("Login error:", error.code);
+                loginError.textContent = error.message;
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                // This will trigger onAuthStateChanged, which will sign the user in anonymously
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
+        }
+
+
+        // --- Event Listeners ---
+        
+        checkinButtonMobile.addEventListener('click', () => { // UPDATED
+            showQuizStep(1); // Ensure quiz starts at step 1
+            toggleModal('checkin-modal', true);
+        });
+        checkinButtonDesktop.addEventListener('click', () => { // NEW
+            showQuizStep(1); // Ensure quiz starts at step 1
+            toggleModal('checkin-modal', true);
+        });
+        analyzeMoodButton.addEventListener('click', analyzeMood);
+        downloadPdfButton.addEventListener('click', downloadReport); // RE-ADDED: Attach listener
+        modalDownloadPdfButton.addEventListener('click', downloadReport); // NEW: Attach listener
+
+        // NEW: Auth Listeners
+        signupButton.addEventListener('click', handleSignUp);
+        loginButton.addEventListener('click', handleLogin);
+        logoutButton.addEventListener('click', handleLogout);
+        
+        // --- NEW: Expose functions to global scope for HTML onclick attributes ---
+        // This is necessary because we are using <script type="module">
+        window.closeModal = closeModal;
+        window.openAuthModal = openAuthModal;
+        window.showQuizStep = showQuizStep;
+        window.handleQuizAnswer = handleQuizAnswer;
+        window.toggleHighContrast = toggleHighContrast;
+        window.toggleDyslexiaFont = toggleDyslexiaFont;
+        // Note: openModule, openCircle, etc., are fine because their event listeners
+        // are added programmatically *within* this module scope.
+
+        // --- Initial Page Load ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // NEW: Initialize Firebase first
+            initializeFirebase();
+
+            // These render the static card structure
+            renderRecommendedModules(); 
+            // REMOVED: renderCircles() call
+            // The onSnapshot listener will fill in the progress data when it loads
+        });
+
+    </script>
+</body>
+</html>
